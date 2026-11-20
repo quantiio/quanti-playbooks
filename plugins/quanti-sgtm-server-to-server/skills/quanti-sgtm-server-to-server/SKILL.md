@@ -218,8 +218,9 @@ Google's software on first start). Tell them not to touch the DNS records meanwh
 
 From the `gtm_settings` returned by the `active` status, only one applies here, because the
 server container is already set up: in the SERVER container → Admin → Container settings,
-**add** the Quanti URL to *Server container URLs* (keep the old one until step 14). It lets
-the Preview button work on the Quanti server. Nothing to publish in the server container.
+**add** the Quanti URL to *Server container URLs* and put it **first** in the list: the
+Preview opens on the new server, which is the one to test. Keep the old URL below it until
+step 14. Nothing to publish in the server container.
 
 ### 10. Test before switching — `preview-test`
 
@@ -272,9 +273,12 @@ The next day, compare the days before and after the switch, by the means availab
   with `execute_query`.
 - **Otherwise**: ask for a screenshot of GA4 → Reports → Realtime and of the daily users
   chart over 14 days.
-Compare the switch day with the same weekday of the previous weeks, not with the day
-before. A variation within the usual range is normal. A clear break on the switch day, or
-an event that stopped altogether, is not: go to troubleshooting.
+The figures must stay very close to before: the host changed, not the data. Compare each
+day after the switch with the **same weekday of the 4 previous weeks** (never with the
+day before), for sessions and for each key event:
+- within the lowest and highest of those 4 weeks → normal, say so;
+- outside that range, or an event that stopped altogether → not normal: go to
+  troubleshooting. Show the user the table you compared.
 
 ### 14. Decommission the old host — `decommission`
 
