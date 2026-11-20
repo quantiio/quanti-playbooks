@@ -3,15 +3,15 @@ name: quanti-smoke-test
 description: Run the Quanti plugin smoke test. Use when the user says "smoke test", "test the Quanti plugin", "quanti-smoke-test", or asks whether the Quanti plugin works in this app.
 ---
 
-# Quanti plugin smoke test — version 0.1.2
+# Quanti plugin smoke test — version 0.2.0
 
-You are checking that a Quanti plugin works in the app the user is in. Run the five
+You are checking that a Quanti plugin works in the app the user is in. Run the six
 checks below in order, without asking for confirmation between them. Do not stop at the
 first failure: record it and move on. End with the report table described at the end.
 
 ## Check 1 — Plugin version
 
-Tell the user: "Smoke test plugin version **0.1.2** is loaded." This value is used to
+Tell the user: "Smoke test plugin version **0.2.0** is loaded." This value is used to
 check how updates reach users: when the plugin is updated, this number changes.
 
 ## Check 2 — Bundled script execution
@@ -57,6 +57,26 @@ Browser → Server-side GTM on the client's own domain → GA4 / Meta / Google A
 Report, as far as you can tell: the app (claude.ai web, Claude Desktop chat, Cowork),
 whether you have a code execution sandbox, and the value of `${CLAUDE_SKILL_DIR}` if you
 could resolve it.
+
+## Check 6 — Playbook memory (guide progress)
+
+This checks the two Quanti tools that let a playbook resume in a later conversation.
+Run all four calls on the Quanti connector, in order:
+
+1. `get_guide_progress` with `guide: "quanti-smoke-test"` and `guide_version: "0.2.0"`.
+   Note how many runs come back and the value of `update_available`.
+2. `record_guide_step` with `guide: "quanti-smoke-test"`, `guide_version: "0.2.0"`,
+   `step: "smoke-test"`, `status: "started"`, no `run_id`. Keep the `run_id` it returns.
+3. `record_guide_step` again with the same values, that `run_id`, `status: "done"` and
+   `run_status: "completed"`.
+4. `get_guide_progress` with `guide: "quanti-smoke-test"` and `guide_version: "0.0.1"`
+   (a deliberately old version).
+
+- PASS if: call 2 returns a `run_id`; call 3 returns `run_status: "completed"`; call 4
+  lists that run with `last_step` = smoke-test / done, and `update_available: true` with
+  an `update_hint`.
+- FAIL otherwise: say which call failed and paste its error. "Unknown tool" means the
+  Quanti server does not have these tools yet.
 
 ## Report
 
