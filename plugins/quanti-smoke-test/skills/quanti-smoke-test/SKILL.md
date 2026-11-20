@@ -3,7 +3,7 @@ name: quanti-smoke-test
 description: Run the Quanti plugin smoke test. Use when the user says "smoke test", "test the Quanti plugin", "quanti-smoke-test", or asks whether the Quanti plugin works in this app.
 ---
 
-# Quanti plugin smoke test — version 0.1.1
+# Quanti plugin smoke test — version 0.1.2
 
 You are checking that a Quanti plugin works in the app the user is in. Run the five
 checks below in order, without asking for confirmation between them. Do not stop at the
@@ -11,7 +11,7 @@ first failure: record it and move on. End with the report table described at the
 
 ## Check 1 — Plugin version
 
-Tell the user: "Smoke test plugin version **0.1.1** is loaded." This value is used to
+Tell the user: "Smoke test plugin version **0.1.2** is loaded." This value is used to
 check how updates reach users: when the plugin is updated, this number changes.
 
 ## Check 2 — Bundled script execution
