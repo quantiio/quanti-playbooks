@@ -1,37 +1,57 @@
 {
   "exportFormatVersion": 2,
   "containerVersion": {
-    "containerVersionId": "42",
-    "name": "Before migration",
-    "container": { "publicId": "GTM-WEB1234", "name": "shop.example.com", "usageContext": ["WEB"] },
+    "containerVersionId": "0",
+    "container": { "publicId": "GTM-WEB1234", "name": "shop.example.com - web", "usageContext": ["WEB"] },
     "tag": [
       {
-        "name": "Google tag - G-ABC123",
+        "name": "Google Tag",
         "type": "googtag",
         "parameter": [
           { "type": "TEMPLATE", "key": "tagId", "value": "G-ABC123" },
+          { "type": "TEMPLATE", "key": "configSettingsVariable", "value": "{{Google Tag settings}}" }
+        ]
+      },
+      {
+        "name": "Google Analytics G-ABC123",
+        "type": "dest_ga",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "configSettingsVariable", "value": "{{Google Tag settings}}" },
+          { "type": "TEMPLATE", "key": "destinationId", "value": "G-ABC123" }
+        ]
+      },
+      { "name": "Ads - purchase", "type": "awct", "parameter": [] },
+      { "name": "Meta pixel", "type": "html", "paused": true, "parameter": [{ "type": "TEMPLATE", "key": "html", "value": "<script>fbq('init','123');</script>" }] }
+    ],
+    "trigger": [{ "name": "All pages" }],
+    "variable": [
+      {
+        "name": "Google Tag settings",
+        "type": "gtcs",
+        "parameter": [
           {
             "type": "LIST",
             "key": "configSettingsTable",
             "list": [
-              {
-                "type": "MAP",
-                "map": [
-                  { "type": "TEMPLATE", "key": "parameter", "value": "server_container_url" },
-                  { "type": "TEMPLATE", "key": "parameterValue", "value": "{{Const - sGTM URL}}" }
-                ]
-              }
+              { "type": "MAP", "map": [
+                { "type": "TEMPLATE", "key": "parameter", "value": "send_page_view" },
+                { "type": "TEMPLATE", "key": "parameterValue", "value": "true" } ] },
+              { "type": "MAP", "map": [
+                { "type": "TEMPLATE", "key": "parameter", "value": "server_container_url" },
+                { "type": "TEMPLATE", "key": "parameterValue", "value": "{{Const - sGTM URL}}" } ] }
             ]
           }
         ]
       },
-      { "name": "GA4 - purchase", "type": "gaawe", "parameter": [{ "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-ABC123" }] },
-      { "name": "Ads - purchase", "type": "awct", "parameter": [] },
-      { "name": "Meta pixel", "type": "html", "parameter": [{ "type": "TEMPLATE", "key": "html", "value": "<script>fbq('init','123');</script>" }] }
-    ],
-    "trigger": [{ "name": "All pages" }],
-    "variable": [
       { "name": "Const - sGTM URL", "type": "c", "parameter": [{ "type": "TEMPLATE", "key": "value", "value": "https://gtm.example.com" }] }
+    ],
+    "customTemplate": [
+      {
+        "templateId": "42",
+        "name": "Data Tag",
+        "templateData": "___INFO___\n{\"brand\": {\"id\": \"github.com_stape-io\", \"displayName\": \"stape-io\"}}\n___SANDBOXED_JS_FOR_WEB_TEMPLATE___\nconst url = 'https://stapecdn.com/dtag/v9.js'; // see https://developer.mozilla.org/x\n",
+        "galleryReference": { "host": "github.com", "owner": "stape-io", "repository": "data-tag" }
+      }
     ]
   }
 }

@@ -4,14 +4,15 @@ Standard library only. Prints one JSON object on stdout.
 Usage: python3 audit_gtm_export.py <export.json>
 
 What it answers, for a migration between server-side hosts:
-- WEB container: which Google tags send to a server container, and at which URL
-  (server_container_url), which pixels still run in the browser, which Google Ads tags
-  stay client-side.
-- SERVER container: its clients and tags, and the custom templates that come from a
-  hosting provider's gallery (they may depend on a feature of that provider).
+- WEB container: which Google tags send to a server container and at which URL
+  (server_container_url, set on the tag or in a "Google tag settings" variable), which
+  pixels still run in the browser, which Google Ads tags stay client-side.
+- SERVER container: its server container URLs, its clients (with the custom paths of the
+  GTM client), its tags, and the custom templates that call a hosting provider's domain.
+- Both: custom templates, whether a tag uses them, and the external hosts they call.
 
-It reads the export only. It never prints parameter values other than URLs and IDs:
-an export can contain API tokens (Meta CAPI, etc.).
+It reads the export only. It prints names, types, IDs and URLs, never other parameter
+values: an export can contain API tokens (Meta CAPI, HubSpot, etc.).
 """
 import json
 import re
@@ -22,6 +23,7 @@ TAG_LABELS = {
     "googtag": "Google tag",
     "gaawc": "GA4 configuration (legacy)",
     "gaawe": "GA4 event",
+    "dest_ga": "Google Analytics destination",
     "awct": "Google Ads conversion",
     "sp": "Google Ads remarketing",
     "gclidw": "Conversion linker",
@@ -29,9 +31,13 @@ TAG_LABELS = {
     "fls": "Floodlight sales",
     "html": "Custom HTML",
     "img": "Custom image",
+    "http_request": "HTTP request",
     "sgtmgaaw": "GA4 (server)",
     "sgtmadsct": "Google Ads conversion (server)",
     "sgtmadsrm": "Google Ads remarketing (server)",
+    "gaaw_client": "GA4 client",
+    "ua_client": "Universal Analytics client",
+    "gtm_client": "Google Tag Manager web container client",
 }
 
 HTML_VENDORS = [
@@ -45,11 +51,20 @@ HTML_VENDORS = [
     ("uetq", "Microsoft Ads UET"),
 ]
 
-# Gallery owners and names that belong to a hosting provider rather than to a vendor.
-PROVIDER_HINTS = ["stape", "addingwell", "taggrs", "jentis", "tagstack"]
+# Domains that belong to a server-side hosting provider. A template that calls one of them
+# depends on that provider, whoever published it.
+PROVIDER_DOMAINS = {"stape.io": "Stape", "stapecdn.com": "Stape", "stape.net": "Stape",
+                    "addingwell.com": "Addingwell", "taggrs.io": "TAGGRS"}
+# Client settings that are safe to print (no secret) and matter for a migration.
+CLIENT_SETTINGS = {"cookieManagement", "cookieName", "cookieDomain", "migrateFromJsClientId",
+                   "activateDefaultPaths"}
 
 SERVER_URL_NAME = re.compile(r"server_?container_?url", re.IGNORECASE)
 VARIABLE_REF = re.compile(r"\{\{([^}]+)\}\}")
+URL_HOST = re.compile(r"https?://([a-z0-9.-]+\.[a-z]{2,})", re.IGNORECASE)
+# Hosts present in almost every template (docs, gallery, Google itself): not a dependency.
+IGNORED_HOSTS = ("developers.google.com", "support.google.com", "github.com", "www.simoahava.com",
+                 "developer.mozilla.org", "tagmanager.google.com")
 
 
 # #region walk_params
@@ -84,26 +99,77 @@ def param(item, key):
 # #region resolve
 def resolve(value, constants):
     """Replace {{Variable}} by its value when the variable is a constant."""
-    def sub(m):
-        return constants.get(m.group(1), m.group(0))
-    return VARIABLE_REF.sub(sub, value)
+    return VARIABLE_REF.sub(lambda m: constants.get(m.group(1), m.group(0)), value)
 # #endregion
 
 
-# #region provider_hint
-def provider_hint(*texts):
-    blob = " ".join(t for t in texts if t).lower()
-    return next((h for h in PROVIDER_HINTS if h in blob), None)
+# #region provider_of
+def provider_of(host):
+    host = host.lower()
+    return next((name for dom, name in PROVIDER_DOMAINS.items()
+                 if host == dom or host.endswith("." + dom)), None)
+# #endregion
+
+
+# #region audit_templates
+def audit_templates(version):
+    """Custom templates: who published them, whether a tag/client/variable uses them, and
+    the external hosts their code calls (provider hosts flagged)."""
+    used = Counter()
+    for kind in ("tag", "client", "variable"):
+        for item in version.get(kind, []):
+            t = item.get("type", "")
+            if t.startswith("cvt_"):
+                used[t.split("_")[-1]] += 1
+    out = []
+    for t in version.get("customTemplate", []):
+        ref = t.get("galleryReference") or {}
+        body = t.get("templateData", "")
+        hosts = sorted({h.lower() for h in URL_HOST.findall(body)
+                        if not any(h.lower().endswith(i) for i in IGNORED_HOSTS)})
+        brand = re.search(r'"displayName":\s*"([^"]*)"', body.split('"brand"', 1)[1]) if '"brand"' in body else None
+        providers = sorted({p for p in (provider_of(h) for h in hosts) if p})
+        out.append({
+            "template": t.get("name"),
+            "published_by": ref.get("owner") or (brand.group(1) if brand else None) or "custom (not from the gallery)",
+            "used_by": used.get(str(t.get("templateId")), 0),
+            "calls_hosts": hosts,
+            "depends_on_provider": providers,
+        })
+    return out
+# #endregion
+
+
+# #region template_names
+def template_names(version):
+    return {str(t.get("templateId")): t.get("name") for t in version.get("customTemplate", [])}
+# #endregion
+
+
+# #region label
+def label(kind, templates):
+    if kind.startswith("cvt_"):
+        return "Template: " + str(templates.get(kind.split("_")[-1], kind))
+    return TAG_LABELS.get(kind, kind)
 # #endregion
 
 
 # #region audit_web
 def audit_web(version, constants):
+    templates = template_names(version)
+    # "Google tag settings" variables (gtcs): the server URL often lives here, not on the tag.
+    settings_urls = {}
+    for v in version.get("variable", []):
+        found = []
+        walk_params(v.get("parameter"), found)
+        if found:
+            settings_urls[v.get("name")] = [resolve(u, constants) for u in found]
+
     tags = version.get("tag", [])
     by_type, pixels, routes, ads_client_side = Counter(), Counter(), [], []
     for tag in tags:
         kind = tag.get("type", "unknown")
-        by_type[TAG_LABELS.get(kind, "Community template" if kind.startswith("cvt_") else kind)] += 1
+        by_type[label(kind, templates)] += 1
         if kind == "html":
             code = param(tag, "html") or ""
             for marker, vendor in HTML_VENDORS:
@@ -114,58 +180,67 @@ def audit_web(version, constants):
             ads_client_side.append(tag.get("name"))
         found = []
         walk_params(tag.get("parameter"), found)
-        if kind in ("googtag", "gaawc", "gaawe") or found:
+        urls = [resolve(u, constants) for u in found]
+        for key in ("configSettingsVariable", "eventSettingsVariable"):
+            ref = param(tag, key)
+            if isinstance(ref, str):
+                for name in VARIABLE_REF.findall(ref):
+                    urls += settings_urls.get(name, [])
+        if kind in ("googtag", "gaawc", "gaawe", "dest_ga") or urls:
             routes.append({
                 "tag": tag.get("name"),
-                "type": TAG_LABELS.get(kind, kind),
-                "tag_id": param(tag, "tagId") or param(tag, "measurementId") or param(tag, "measurementIdOverride"),
-                "server_container_url": [resolve(u, constants) for u in found] or None,
+                "type": label(kind, templates),
+                "tag_id": param(tag, "tagId") or param(tag, "destinationId")
+                or param(tag, "measurementId") or param(tag, "measurementIdOverride"),
+                "server_container_url": sorted(set(urls)) or None,
                 "paused": bool(tag.get("paused")),
             })
-    urls = sorted({u for r in routes for u in (r["server_container_url"] or [])})
     return {
         "tags_total": len(tags),
         "tags_by_type": dict(by_type),
+        "paused_tags": [t.get("name") for t in tags if t.get("paused")],
         "google_tags_routing": routes,
-        "server_container_urls": urls,
+        "server_container_urls": sorted({u for r in routes for u in (r["server_container_url"] or [])}),
         "client_side_pixels": dict(pixels),
         "google_ads_tags_in_browser": ads_client_side,
     }
 # #endregion
 
 
+# #region gtm_client_paths
+def gtm_client_paths(client):
+    """Custom paths a GTM client serves web containers on (allowedContainerIds)."""
+    out = []
+    for p in client.get("parameter", []):
+        if p.get("key") == "allowedContainerIds":
+            for item in p.get("list", []):
+                entries = {m.get("key"): m.get("value") for m in item.get("map", [])}
+                out.append({"container_id": entries.get("containerId"), "path": entries.get("path")})
+    return out
+# #endregion
+
+
 # #region audit_server
-def audit_server(version):
-    templates = {}
-    flagged = []
-    for t in version.get("customTemplate", []):
-        ref = t.get("galleryReference") or {}
-        owner, repo = ref.get("owner"), ref.get("repository")
-        templates[t.get("templateId")] = t.get("name")
-        hint = provider_hint(t.get("name"), owner, repo)
-        if hint:
-            flagged.append({"template": t.get("name"), "gallery_owner": owner, "repository": repo, "provider": hint})
-
-    def label(kind):
-        if kind.startswith("cvt_"):
-            return "Template: " + str(templates.get(kind.split("_")[-1], kind))
-        return TAG_LABELS.get(kind, kind)
-
-    clients = [{"name": c.get("name"), "type": label(c.get("type", "")),
-                "settings": sorted(p.get("key") for p in c.get("parameter", []))}
-               for c in version.get("client", [])]
+def audit_server(version, container):
+    templates = template_names(version)
+    clients = []
+    for c in version.get("client", []):
+        entry = {"name": c.get("name"), "type": label(c.get("type", ""), templates)}
+        settings = {p.get("key"): p.get("value") for p in c.get("parameter", [])
+                    if p.get("key") in CLIENT_SETTINGS}
+        if settings:
+            entry["settings"] = settings
+        if c.get("type") == "gtm_client":
+            entry["custom_paths"] = gtm_client_paths(c)
+        clients.append(entry)
     tags = version.get("tag", [])
-    by_type = Counter(label(t.get("type", "unknown")) for t in tags)
-    variables = [v.get("name") for v in version.get("variable", [])
-                 if provider_hint(v.get("name"), v.get("type"))]
-    for name in variables:
-        flagged.append({"variable": name, "provider": provider_hint(name)})
     return {
+        "server_container_urls_setting": container.get("taggingServerUrls", []),
         "clients": clients,
         "tags_total": len(tags),
-        "tags_by_type": dict(by_type),
+        "tags_by_type": dict(Counter(label(t.get("type", "unknown"), templates) for t in tags)),
+        "active_tags": [t.get("name") for t in tags if not t.get("paused")],
         "paused_tags": [t.get("name") for t in tags if t.get("paused")],
-        "provider_specific": flagged,
     }
 # #endregion
 
@@ -186,7 +261,10 @@ def summarise(export):
         "triggers_total": len(version.get("trigger", [])),
         "variables_total": len(version.get("variable", [])),
     }
-    out.update(audit_server(version) if out["kind"] == "server" else audit_web(version, constants))
+    out.update(audit_server(version, container) if out["kind"] == "server" else audit_web(version, constants))
+    templates = audit_templates(version)
+    out["custom_templates"] = templates
+    out["provider_dependencies"] = [t for t in templates if t["depends_on_provider"]]
     return out
 # #endregion
 
@@ -200,7 +278,7 @@ def main():
         with open(sys.argv[1], encoding="utf-8") as f:
             export = json.load(f)
         print(json.dumps(summarise(export), indent=2, ensure_ascii=False))
-    except (OSError, ValueError, AttributeError) as err:
+    except (OSError, ValueError, AttributeError, IndexError) as err:
         print(json.dumps({"ok": False, "error": f"{type(err).__name__}: {err}"}))
         sys.exit(1)
 # #endregion

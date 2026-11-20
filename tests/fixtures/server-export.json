@@ -1,21 +1,39 @@
 {
   "exportFormatVersion": 2,
   "containerVersion": {
-    "containerVersionId": "7",
-    "container": { "publicId": "GTM-SRV9876", "name": "shop.example.com - server", "usageContext": ["SERVER"] },
+    "containerVersionId": "0",
+    "container": {
+      "publicId": "GTM-SRV9876",
+      "name": "shop.example.com - server",
+      "usageContext": ["SERVER"],
+      "taggingServerUrls": ["https://gtm.example.com"]
+    },
     "client": [
-      { "name": "GA4", "type": "gaaw_client", "parameter": [{ "type": "BOOLEAN", "key": "cookieManagement", "value": "server" }] },
-      { "name": "Custom loader", "type": "cvt_111_222", "parameter": [] }
+      { "name": "GA4", "type": "gaaw_client", "parameter": [
+        { "type": "TEMPLATE", "key": "cookieManagement", "value": "server" },
+        { "type": "BOOLEAN", "key": "migrateFromJsClientId", "value": "false" },
+        { "type": "TEMPLATE", "key": "cookieName", "value": "FPID" } ] },
+      { "name": "GTM-WEB1234", "type": "gtm_client", "parameter": [
+        { "type": "LIST", "key": "allowedContainerIds", "list": [
+          { "type": "MAP", "map": [
+            { "type": "TEMPLATE", "key": "containerId", "value": "GTM-WEB1234" },
+            { "type": "TEMPLATE", "key": "path", "value": "/aB3xYz9" } ] } ] } ] },
+      { "name": "Data Client - provider", "type": "cvt_111_9", "parameter": [] }
     ],
     "tag": [
-      { "name": "GA4", "type": "sgtmgaaw", "parameter": [] },
-      { "name": "Meta CAPI", "type": "cvt_333_444", "parameter": [{ "type": "TEMPLATE", "key": "accessToken", "value": "SECRET-TOKEN" }] },
-      { "name": "Old test", "type": "sgtmgaaw", "paused": true, "parameter": [] }
+      { "name": "GA4 - page_view", "type": "sgtmgaaw", "parameter": [] },
+      { "name": "HubSpot page views", "type": "cvt_111_4", "paused": true, "parameter": [
+        { "type": "TEMPLATE", "key": "apiKey", "value": "SECRET-TOKEN" } ] }
     ],
-    "variable": [{ "name": "Stape Store lookup", "type": "cvt_555_666" }],
+    "variable": [{ "name": "Store lookup", "type": "cvt_111_30" }],
     "customTemplate": [
-      { "templateId": "222", "name": "Custom Loader", "galleryReference": { "host": "github.com", "owner": "stape-io", "repository": "custom-loader-client" } },
-      { "templateId": "444", "name": "Facebook Conversion API", "galleryReference": { "host": "github.com", "owner": "facebookincubator", "repository": "ConversionsAPI-Tag-for-GoogleTagManager" } }
+      { "templateId": "4", "name": "HubSpot",
+        "templateData": "___INFO___\n{\"brand\": {\"id\": \"github.com_stape-io\", \"displayName\": \"stape-io\"}}\n___SANDBOXED_JS_FOR_SERVER___\nlet url = 'https://api.hubapi.com/events/v3/send';\n",
+        "galleryReference": { "host": "github.com", "owner": "stape-io", "repository": "hubspot-tag" } },
+      { "templateId": "9", "name": "Data Client",
+        "templateData": "___INFO___\n{\"type\": \"CLIENT\", \"brand\": {\"id\": \"brand_dummy\", \"displayName\": \"Stape\"}}\n___SANDBOXED_JS_FOR_SERVER___\nconst path = '/data';\n" },
+      { "templateId": "30", "name": "Store lookup (provider store)",
+        "templateData": "___INFO___\n{\"type\": \"MACRO\"}\n___SANDBOXED_JS_FOR_SERVER___\nconst url = 'https://api.store.stape.io/v1/lookup';\n" }
     ]
   }
 }

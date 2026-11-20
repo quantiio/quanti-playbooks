@@ -103,29 +103,38 @@ Run the scripts on what they attach:
 ```
 python3 ${CLAUDE_SKILL_DIR}/scripts/audit_gtm_export.py <web-export.json>
 python3 ${CLAUDE_SKILL_DIR}/scripts/audit_gtm_export.py <server-export.json>
-python3 ${CLAUDE_SKILL_DIR}/scripts/check_snippet.py <page-source.html>
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_snippet.py <page-source.html> <server-export.json>
 ```
 
-If you cannot run scripts in this app, read the files yourself and look for the same
-things. From the results, establish and **show the user a short summary**:
+Always pass the server export to `check_snippet.py`: without it, a custom path declared
+by the server container itself looks like the old host's. If you cannot run scripts in
+this app, read the files yourself and look for the same things. From the results,
+establish and **show the user a short summary**:
 
 - **Today's collection domain**: `server_container_urls` of the WEB export (e.g.
-  `https://gtm.client.com`). Several values or none: ask why before going on.
-- **How the site loads GTM** (`check_snippet.py`):
+  `https://gtm.client.com`), and `server_container_urls_setting` of the SERVER export.
+  They should match. Several values or none: ask why before going on.
+- **How the site loads GTM** (`check_snippet.py`, field `kind` of each loader):
   - `google_default` → the site loads GTM from Google; only the GA4 hits go to the server.
   - `first_party_standard_path` → loaded from their domain on GTM's standard path.
+  - `served_by_server_container` → a custom path declared in the GTM client of the server
+    container. It moves with the container: Quanti serves it too.
   - `first_party_custom_path` → a **custom loader** of the old host (`provider_hints`
-    may say which). Quanti does not serve the old host's custom paths: the snippet **must**
-    be replaced during the migration. Say so clearly now.
-- **The server container's tags and clients** (what will keep running), and
-  `provider_specific` items: templates or variables that come from the old host's gallery
-  (e.g. a custom loader client, a store lookup). For each one, ask what it is used for:
-  it may rely on a feature of the old host that does not exist on Quanti. Flag it; do not
-  delete anything.
+    may say which). Quanti does not serve it: the snippet **must** be replaced during the
+    migration. Say so clearly now.
+- **What keeps running on the server**: `active_tags` and `clients`. They all move with
+  the container. Paused tags are only listed.
+- **Dependencies on the old host**: `provider_dependencies` of both exports, i.e. custom
+  templates whose code calls the old host's domains. Templates merely *published* by the
+  old host (e.g. on the stape-io gallery) run anywhere: do not flag them. For each real
+  dependency with `used_by` > 0, ask what it is used for and tell the user it will stop
+  working after the switch, unless replaced. `used_by` = 0: unused, nothing to do.
+- **The GA4 client settings** (`clients` → `settings`): note `cookieManagement`. They move
+  with the container; nothing to change.
 - **Google Ads tags left in the browser** (`google_ads_tags_in_browser`): they keep
   sending to Google directly; that is unchanged by the migration.
 - **The WEB and SERVER container IDs** (both look like `GTM-XXXXXXX`: note which is which,
-  it matters at step 10).
+  it matters at step 11).
 
 ### 4. Strategy — `strategy`
 
@@ -139,14 +148,17 @@ Cost: the site's snippet is replaced (it is needed anyway with a custom loader),
 hosts run for a few days.
 
 **B — Same subdomain, DNS switch.** The old name is pointed at Quanti. The snippet and the
-WEB container can stay as they are — **only if** the site loads GTM from Google or on the
-standard path (step 3). Risks to explain before choosing it:
+WEB container can stay as they are — **only if** no loader of step 3 is
+`first_party_custom_path`. Risks to explain before choosing it:
 - the moment the DNS points to Quanti, Quanti requests the HTTPS certificate for that
   name, which takes up to a few minutes: visitors whose DNS already points to Quanti get
   no response meanwhile (lost hits);
 - nothing can be tested on the real name before the switch;
-- with a custom loader (`first_party_custom_path`), the site loses **all** its tags at the
-  switch until the snippet is replaced. **Refuse B in that case** and explain why.
+- with a custom loader of the old host (`first_party_custom_path`), the site loses
+  **all** its tags at the switch until the snippet is replaced. **Refuse B in that case**
+  and explain why.
+- a template in `provider_dependencies` with `used_by` > 0 stops working at the switch,
+  with no way to test its replacement on the real name beforehand.
 
 Record the choice in the conversation (not in `note`).
 
