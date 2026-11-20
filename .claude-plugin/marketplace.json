@@ -1,0 +1,15 @@
+{
+  "name": "quanti-playbooks",
+  "description": "Quanti playbooks: step-by-step guides that Claude runs with you, on top of the Quanti connector.",
+  "owner": {
+    "name": "Quanti",
+    "url": "https://www.quanti.io"
+  },
+  "plugins": [
+    {
+      "name": "quanti-smoke-test",
+      "source": "./plugins/quanti-smoke-test",
+      "description": "Internal test plugin (staging). Not for clients."
+    }
+  ]
+}

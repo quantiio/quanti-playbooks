@@ -1,0 +1,52 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2026-11-20 10:00:00",
+  "containerVersion": {
+    "container": {
+      "publicId": "GTM-SAMPLE1",
+      "usageContext": ["WEB"]
+    },
+    "tag": [
+      {
+        "tagId": "1",
+        "name": "Google tag — G-SAMPLE",
+        "type": "googtag",
+        "parameter": [{ "type": "TEMPLATE", "key": "tagId", "value": "G-SAMPLE" }],
+        "firingTriggerId": ["2147479553"]
+      },
+      {
+        "tagId": "2",
+        "name": "GA4 — purchase",
+        "type": "gaawe",
+        "parameter": [{ "type": "TEMPLATE", "key": "eventName", "value": "purchase" }],
+        "firingTriggerId": ["10"]
+      },
+      {
+        "tagId": "3",
+        "name": "Google Ads — purchase conversion",
+        "type": "awct",
+        "parameter": [{ "type": "TEMPLATE", "key": "conversionId", "value": "123456789" }],
+        "firingTriggerId": ["10"]
+      },
+      {
+        "tagId": "4",
+        "name": "Meta pixel — base",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>!function(f){/* pixel loader */}(window);fbq('init','000000000000000');fbq('track','PageView');</script>"
+          }
+        ],
+        "firingTriggerId": ["2147479553"]
+      }
+    ],
+    "trigger": [
+      { "triggerId": "10", "name": "Event — purchase", "type": "CUSTOM_EVENT" }
+    ],
+    "variable": [
+      { "variableId": "20", "name": "DLV — transaction_id", "type": "v" }
+    ]
+  }
+}
