@@ -1,8 +1,8 @@
 # Quanti — move your server-side GTM to Quanti
 
 Claude guides you, step by step, through moving an existing server-side Google Tag
-Manager setup — hosted by Stape, Addingwell, Google Cloud or yourself — to a server hosted
-by Quanti, on your own domain. You keep the same server container, the same tags and the
+Manager setup — hosted by another provider or by yourself — to a server hosted by Quanti,
+on your own domain. You keep the same server container, the same tags and the
 same data; only the host changes.
 
 ## What you need

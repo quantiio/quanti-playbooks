@@ -1,6 +1,6 @@
 ---
 name: quanti-sgtm-server-to-server
-description: Guide the user, step by step, through moving an existing server-side Google Tag Manager setup (hosted by Stape, Addingwell, Google Cloud or self-hosted) to a server hosted by Quanti. Use when the user wants to migrate, move or switch their server-side GTM / sGTM / tagging server to Quanti, or resume such a migration.
+description: Guide the user, step by step, through moving an existing server-side Google Tag Manager setup, hosted by another provider or self-hosted, to a server hosted by Quanti. Use when the user wants to migrate, move or switch their server-side GTM / sGTM / tagging server to Quanti, or resume such a migration.
 ---
 
 # Server-side GTM → Quanti — playbook version 0.1.0
@@ -100,9 +100,15 @@ Ask for three things, one at a time, explaining where to find each
 
 Run the scripts on what they attach:
 
+First find the **old host's domain**: call `inspect_sgtm_server` with `action:
+"check_domain"` on today's collection subdomain (read-only). `already_resolves_to` shows
+where it points; if it is a name (not only IP addresses), keep its domain. Otherwise ask
+the user which provider hosts their server today and the domain of its platform. Never
+name or comment on that provider yourself: call it "your current host".
+
 ```
-python3 ${CLAUDE_SKILL_DIR}/scripts/audit_gtm_export.py <web-export.json>
-python3 ${CLAUDE_SKILL_DIR}/scripts/audit_gtm_export.py <server-export.json>
+python3 ${CLAUDE_SKILL_DIR}/scripts/audit_gtm_export.py <web-export.json> <old host domain>
+python3 ${CLAUDE_SKILL_DIR}/scripts/audit_gtm_export.py <server-export.json> <old host domain>
 python3 ${CLAUDE_SKILL_DIR}/scripts/check_snippet.py <page-source.html> <server-export.json>
 ```
 
@@ -119,16 +125,18 @@ establish and **show the user a short summary**:
   - `first_party_standard_path` → loaded from their domain on GTM's standard path.
   - `served_by_server_container` → a custom path declared in the GTM client of the server
     container. It moves with the container: Quanti serves it too.
-  - `first_party_custom_path` → a **custom loader** of the old host (`provider_hints`
-    may say which). Quanti does not serve it: the snippet **must** be replaced during the
-    migration. Say so clearly now.
+  - `first_party_custom_path` → a **custom loader** of the current host's platform.
+    Quanti does not serve it: the snippet **must** be replaced during the migration. Say
+    so clearly now.
 - **What keeps running on the server**: `active_tags` and `clients`. They all move with
   the container. Paused tags are only listed.
-- **Dependencies on the old host**: `provider_dependencies` of both exports, i.e. custom
-  templates whose code calls the old host's domains. Templates merely *published* by the
-  old host (e.g. on the stape-io gallery) run anywhere: do not flag them. For each real
-  dependency with `used_by` > 0, ask what it is used for and tell the user it will stop
-  working after the switch, unless replaced. `used_by` = 0: unused, nothing to do.
+- **Dependencies on the current host**: `old_host_dependencies` of both exports, i.e.
+  custom templates whose code calls the current host's domain. Templates merely
+  *published* by a hosting provider in the template gallery (`published_by`) run anywhere:
+  do not flag them. For each real dependency with `used_by` > 0, ask what it is used for
+  and tell the user it will stop working after the switch, unless replaced. `used_by` = 0:
+  unused, nothing to do. If the current host's domain is unknown, show the `calls_hosts`
+  of the used templates and ask the user which ones belong to their current host.
 - **The GA4 client settings** (`clients` → `settings`): note `cookieManagement`. They move
   with the container; nothing to change.
 - **Google Ads tags left in the browser** (`google_ads_tags_in_browser`): they keep
@@ -157,7 +165,7 @@ WEB container can stay as they are — **only if** no loader of step 3 is
 - with a custom loader of the old host (`first_party_custom_path`), the site loses
   **all** its tags at the switch until the snippet is replaced. **Refuse B in that case**
   and explain why.
-- a template in `provider_dependencies` with `used_by` > 0 stops working at the switch,
+- a template in `old_host_dependencies` with `used_by` > 0 stops working at the switch,
   with no way to test its replacement on the real name beforehand.
 
 Record the choice in the conversation (not in `note`).

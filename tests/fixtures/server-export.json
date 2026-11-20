@@ -28,12 +28,12 @@
     "variable": [{ "name": "Store lookup", "type": "cvt_111_30" }],
     "customTemplate": [
       { "templateId": "4", "name": "HubSpot",
-        "templateData": "___INFO___\n{\"brand\": {\"id\": \"github.com_stape-io\", \"displayName\": \"stape-io\"}}\n___SANDBOXED_JS_FOR_SERVER___\nlet url = 'https://api.hubapi.com/events/v3/send';\n",
-        "galleryReference": { "host": "github.com", "owner": "stape-io", "repository": "hubspot-tag" } },
+        "templateData": "___INFO___\n{\"brand\": {\"id\": \"github.com_oldhost-labs\", \"displayName\": \"oldhost-labs\"}}\n___SANDBOXED_JS_FOR_SERVER___\nlet url = 'https://api.hubapi.com/events/v3/send';\n",
+        "galleryReference": { "host": "github.com", "owner": "oldhost-labs", "repository": "hubspot-tag" } },
       { "templateId": "9", "name": "Data Client",
-        "templateData": "___INFO___\n{\"type\": \"CLIENT\", \"brand\": {\"id\": \"brand_dummy\", \"displayName\": \"Stape\"}}\n___SANDBOXED_JS_FOR_SERVER___\nconst path = '/data';\n" },
+        "templateData": "___INFO___\n{\"type\": \"CLIENT\", \"brand\": {\"id\": \"brand_dummy\", \"displayName\": \"OldHost\"}}\n___SANDBOXED_JS_FOR_SERVER___\nconst path = '/data';\n" },
       { "templateId": "30", "name": "Store lookup (provider store)",
-        "templateData": "___INFO___\n{\"type\": \"MACRO\"}\n___SANDBOXED_JS_FOR_SERVER___\nconst url = 'https://api.store.stape.io/v1/lookup';\n" }
+        "templateData": "___INFO___\n{\"type\": \"MACRO\"}\n___SANDBOXED_JS_FOR_SERVER___\nconst url = 'https://api.store.oldhost.io/v1/lookup';\n" }
     ]
   }
 }

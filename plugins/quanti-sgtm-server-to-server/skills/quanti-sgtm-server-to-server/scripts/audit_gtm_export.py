@@ -1,14 +1,18 @@
 """Audit a Google Tag Manager container export (JSON), web or server.
 
 Standard library only. Prints one JSON object on stdout.
-Usage: python3 audit_gtm_export.py <export.json>
+Usage: python3 audit_gtm_export.py <export.json> [<old host domain> ...]
+
+The optional domains are those of the current hosting provider (e.g. the target the
+collection subdomain points to today): templates calling them are listed as dependencies
+on the old host.
 
 What it answers, for a migration between server-side hosts:
 - WEB container: which Google tags send to a server container and at which URL
   (server_container_url, set on the tag or in a "Google tag settings" variable), which
   pixels still run in the browser, which Google Ads tags stay client-side.
 - SERVER container: its server container URLs, its clients (with the custom paths of the
-  GTM client), its tags, and the custom templates that call a hosting provider's domain.
+  GTM client), its tags, and the custom templates that call the old host's domains.
 - Both: custom templates, whether a tag uses them, and the external hosts they call.
 
 It reads the export only. It prints names, types, IDs and URLs, never other parameter
@@ -51,10 +55,6 @@ HTML_VENDORS = [
     ("uetq", "Microsoft Ads UET"),
 ]
 
-# Domains that belong to a server-side hosting provider. A template that calls one of them
-# depends on that provider, whoever published it.
-PROVIDER_DOMAINS = {"stape.io": "Stape", "stapecdn.com": "Stape", "stape.net": "Stape",
-                    "addingwell.com": "Addingwell", "taggrs.io": "TAGGRS"}
 # Client settings that are safe to print (no secret) and matter for a migration.
 CLIENT_SETTINGS = {"cookieManagement", "cookieName", "cookieDomain", "migrateFromJsClientId",
                    "activateDefaultPaths"}
@@ -103,18 +103,26 @@ def resolve(value, constants):
 # #endregion
 
 
-# #region provider_of
-def provider_of(host):
-    host = host.lower()
-    return next((name for dom, name in PROVIDER_DOMAINS.items()
-                 if host == dom or host.endswith("." + dom)), None)
+# #region registered_domain
+def registered_domain(host):
+    """Last two labels of a host (oldhost.io for gtm.oldhost.io). Approximate for
+    two-part suffixes like co.uk, which is enough to compare hosts."""
+    return ".".join(host.lower().rstrip(".").split(".")[-2:])
+# #endregion
+
+
+# #region calls_old_host
+def calls_old_host(hosts, old_host_domains):
+    """Hosts of this template that belong to one of the old host's domains."""
+    targets = {registered_domain(d) for d in old_host_domains}
+    return sorted(h for h in hosts if registered_domain(h) in targets)
 # #endregion
 
 
 # #region audit_templates
-def audit_templates(version):
-    """Custom templates: who published them, whether a tag/client/variable uses them, and
-    the external hosts their code calls (provider hosts flagged)."""
+def audit_templates(version, old_host_domains):
+    """Custom templates: who published them, whether a tag/client/variable uses them, the
+    external hosts their code calls, and which of them belong to the old host."""
     used = Counter()
     for kind in ("tag", "client", "variable"):
         for item in version.get(kind, []):
@@ -128,13 +136,13 @@ def audit_templates(version):
         hosts = sorted({h.lower() for h in URL_HOST.findall(body)
                         if not any(h.lower().endswith(i) for i in IGNORED_HOSTS)})
         brand = re.search(r'"displayName":\s*"([^"]*)"', body.split('"brand"', 1)[1]) if '"brand"' in body else None
-        providers = sorted({p for p in (provider_of(h) for h in hosts) if p})
+        publisher = ref.get("owner") or (brand.group(1) if brand else None)
         out.append({
             "template": t.get("name"),
-            "published_by": ref.get("owner") or (brand.group(1) if brand else None) or "custom (not from the gallery)",
+            "published_by": publisher or "custom (not from the gallery)",
             "used_by": used.get(str(t.get("templateId")), 0),
             "calls_hosts": hosts,
-            "depends_on_provider": providers,
+            "calls_old_host": calls_old_host(hosts, old_host_domains),
         })
     return out
 # #endregion
@@ -246,7 +254,7 @@ def audit_server(version, container):
 
 
 # #region summarise
-def summarise(export):
+def summarise(export, old_host_domains=()):
     version = export.get("containerVersion", {})
     container = version.get("container", {})
     context = [c.upper() for c in container.get("usageContext", [])]
@@ -262,22 +270,23 @@ def summarise(export):
         "variables_total": len(version.get("variable", [])),
     }
     out.update(audit_server(version, container) if out["kind"] == "server" else audit_web(version, constants))
-    templates = audit_templates(version)
+    templates = audit_templates(version, old_host_domains)
     out["custom_templates"] = templates
-    out["provider_dependencies"] = [t for t in templates if t["depends_on_provider"]]
+    out["old_host_domains_checked"] = list(old_host_domains)
+    out["old_host_dependencies"] = [t for t in templates if t["calls_old_host"]]
     return out
 # #endregion
 
 
 # #region main
 def main():
-    if len(sys.argv) != 2:
-        print(json.dumps({"ok": False, "error": "usage: audit_gtm_export.py <export.json>"}))
+    if len(sys.argv) < 2:
+        print(json.dumps({"ok": False, "error": "usage: audit_gtm_export.py <export.json> [<old host domain> ...]"}))
         sys.exit(2)
     try:
         with open(sys.argv[1], encoding="utf-8") as f:
             export = json.load(f)
-        print(json.dumps(summarise(export), indent=2, ensure_ascii=False))
+        print(json.dumps(summarise(export, sys.argv[2:]), indent=2, ensure_ascii=False))
     except (OSError, ValueError, AttributeError, IndexError) as err:
         print(json.dumps({"ok": False, "error": f"{type(err).__name__}: {err}"}))
         sys.exit(1)

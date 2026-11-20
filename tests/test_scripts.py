@@ -27,9 +27,12 @@ def export(name):
     return json.loads((FIXTURES / name).read_text())
 
 
+OLD_HOST = ["oldhost.io"]
+
+
 class AuditWebExport(unittest.TestCase):
     def setUp(self):
-        self.out = audit.summarise(export("web-export.json"))
+        self.out = audit.summarise(export("web-export.json"), OLD_HOST)
 
     def test_kind(self):
         self.assertEqual(self.out["kind"], "web")
@@ -47,17 +50,22 @@ class AuditWebExport(unittest.TestCase):
         self.assertEqual(self.out["google_ads_tags_in_browser"], ["Ads - purchase"])
         self.assertEqual(self.out["paused_tags"], ["Meta pixel"])
 
-    def test_web_template_calling_provider_cdn(self):
-        dep = self.out["provider_dependencies"]
+    def test_web_template_calling_old_host_cdn(self):
+        dep = self.out["old_host_dependencies"]
         self.assertEqual([d["template"] for d in dep], ["Data Tag"])
-        self.assertEqual(dep[0]["depends_on_provider"], ["Stape"])
+        self.assertEqual(dep[0]["calls_old_host"], ["cdn.oldhost.io"])
         self.assertEqual(dep[0]["used_by"], 0)
         self.assertNotIn("developer.mozilla.org", dep[0]["calls_hosts"])
+
+    def test_without_old_host_domain_nothing_is_flagged(self):
+        out = audit.summarise(export("web-export.json"))
+        self.assertEqual(out["old_host_dependencies"], [])
+        self.assertIn("cdn.oldhost.io", out["custom_templates"][0]["calls_hosts"])
 
 
 class AuditServerExport(unittest.TestCase):
     def setUp(self):
-        self.out = audit.summarise(export("server-export.json"))
+        self.out = audit.summarise(export("server-export.json"), OLD_HOST)
 
     def test_kind_urls_and_clients(self):
         self.assertEqual(self.out["kind"], "server")
@@ -68,13 +76,13 @@ class AuditServerExport(unittest.TestCase):
                          [{"container_id": "GTM-WEB1234", "path": "/aB3xYz9"}])
         self.assertEqual(clients["Data Client - provider"]["type"], "Template: Data Client")
 
-    def test_only_provider_hosts_are_dependencies(self):
-        # Published by stape-io but calling HubSpot only: not a dependency on the host.
+    def test_only_old_host_calls_are_dependencies(self):
+        # Published by the old host in the gallery, but calling HubSpot only: not a dependency.
         templates = {t["template"]: t for t in self.out["custom_templates"]}
-        self.assertEqual(templates["HubSpot"]["published_by"], "stape-io")
-        self.assertEqual(templates["HubSpot"]["depends_on_provider"], [])
-        self.assertEqual(templates["Data Client"]["published_by"], "Stape")
-        self.assertEqual([d["template"] for d in self.out["provider_dependencies"]],
+        self.assertEqual(templates["HubSpot"]["published_by"], "oldhost-labs")
+        self.assertEqual(templates["HubSpot"]["calls_old_host"], [])
+        self.assertEqual(templates["Data Client"]["published_by"], "OldHost")
+        self.assertEqual([d["template"] for d in self.out["old_host_dependencies"]],
                          ["Store lookup (provider store)"])
         self.assertEqual(templates["HubSpot"]["used_by"], 1)
 
@@ -91,7 +99,7 @@ class CheckSnippet(unittest.TestCase):
         out = snippet.analyse((FIXTURES / "snippet-custom-loader.html").read_text())
         self.assertTrue(out["uses_custom_path_from_host"])
         self.assertEqual(out["hosts"], ["gtm.example.com"])  # the CDN script is not a loader
-        self.assertEqual(out["loaders"][0]["provider_hints"], ["Stape-style loader (?st=)"])
+        self.assertEqual(out["loaders"][0]["kind"], "first_party_custom_path")
 
     def test_custom_path_declared_by_server_container(self):
         paths = snippet.server_paths(FIXTURES / "server-export.json")

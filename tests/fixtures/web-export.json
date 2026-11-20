@@ -49,8 +49,8 @@
       {
         "templateId": "42",
         "name": "Data Tag",
-        "templateData": "___INFO___\n{\"brand\": {\"id\": \"github.com_stape-io\", \"displayName\": \"stape-io\"}}\n___SANDBOXED_JS_FOR_WEB_TEMPLATE___\nconst url = 'https://stapecdn.com/dtag/v9.js'; // see https://developer.mozilla.org/x\n",
-        "galleryReference": { "host": "github.com", "owner": "stape-io", "repository": "data-tag" }
+        "templateData": "___INFO___\n{\"brand\": {\"id\": \"github.com_oldhost-labs\", \"displayName\": \"oldhost-labs\"}}\n___SANDBOXED_JS_FOR_WEB_TEMPLATE___\nconst url = 'https://cdn.oldhost.io/dtag/v9.js'; // see https://developer.mozilla.org/x\n",
+        "galleryReference": { "host": "github.com", "owner": "oldhost-labs", "repository": "data-tag" }
       }
     ]
   }

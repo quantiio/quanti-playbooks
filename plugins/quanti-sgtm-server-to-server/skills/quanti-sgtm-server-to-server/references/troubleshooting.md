@@ -52,7 +52,7 @@ Up to 15 minutes is normal on first start. Beyond, the server goes to `error`: s
 
 - A request that no **client** of the server container claims gets a `404`, is not
   forwarded and not billed. Compare the clients with the audit of step 3.
-- A template listed in `provider_dependencies` at step 3 calls the old host's domains: it
+- A template listed in `old_host_dependencies` at step 3 calls the old host's domains: it
   stops working once the old host is cancelled, or right at the switch. Find which tag uses
   it and what it did; this is a question for the person who set up the old container, or
   for Quanti support.

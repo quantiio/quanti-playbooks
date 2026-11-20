@@ -9,8 +9,8 @@ For each loader found: the host, the path, and what serves it:
 - served_by_server_container: a custom path declared in the GTM client of the server
   container (needs the server export). It moves with the container: any host serves it;
 - first_party_custom_path: a custom path NOT declared in the server container. It comes
-  from the current host's infrastructure (a "custom loader"), which the new host does not
-  serve: the snippet must be replaced during the migration.
+  from the current host's own platform (a "custom loader"), which Quanti does not serve:
+  the snippet must be replaced during the migration.
 """
 import json
 import re
@@ -20,8 +20,6 @@ from urllib.parse import urlsplit, parse_qs
 SRC = re.compile(r"""(\.src\s*=|src\s*=)\s*['"](https?://[^'"\s]+)""", re.IGNORECASE)
 CONTAINER = re.compile(r"GTM-[A-Z0-9]{4,10}")
 GOOGLE_HOSTS = ("www.googletagmanager.com", "googletagmanager.com")
-# Query parameter names that public filter lists attribute to a provider's loader.
-PARAM_HINTS = {"st": "Stape-style loader (?st=)", "aw": "Addingwell-style loader (?aw=)"}
 
 
 # #region server_paths
@@ -57,9 +55,8 @@ def classify(url, declared_paths):
         kind = "served_by_server_container"
     else:
         kind = "first_party_custom_path"
-    hints = [label for key, label in PARAM_HINTS.items() if key in query]
     return {"url": url.split("'")[0], "host": host, "path": path, "kind": kind,
-            "query_params": sorted(query), "provider_hints": hints}
+            "query_params": sorted(query)}
 # #endregion
 
 
