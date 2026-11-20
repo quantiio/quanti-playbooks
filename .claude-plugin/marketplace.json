@@ -10,6 +10,11 @@
       "name": "quanti-smoke-test",
       "source": "./plugins/quanti-smoke-test",
       "description": "Internal test plugin (staging). Not for clients."
+    },
+    {
+      "name": "quanti-sgtm-server-to-server",
+      "source": "./plugins/quanti-sgtm-server-to-server",
+      "description": "Move an existing server-side GTM setup (Stape, Addingwell, Google Cloud, self-hosted) to a Quanti server, step by step."
     }
   ]
 }

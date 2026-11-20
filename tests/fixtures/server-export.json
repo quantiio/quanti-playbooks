@@ -1,0 +1,21 @@
+{
+  "exportFormatVersion": 2,
+  "containerVersion": {
+    "containerVersionId": "7",
+    "container": { "publicId": "GTM-SRV9876", "name": "shop.example.com - server", "usageContext": ["SERVER"] },
+    "client": [
+      { "name": "GA4", "type": "gaaw_client", "parameter": [{ "type": "BOOLEAN", "key": "cookieManagement", "value": "server" }] },
+      { "name": "Custom loader", "type": "cvt_111_222", "parameter": [] }
+    ],
+    "tag": [
+      { "name": "GA4", "type": "sgtmgaaw", "parameter": [] },
+      { "name": "Meta CAPI", "type": "cvt_333_444", "parameter": [{ "type": "TEMPLATE", "key": "accessToken", "value": "SECRET-TOKEN" }] },
+      { "name": "Old test", "type": "sgtmgaaw", "paused": true, "parameter": [] }
+    ],
+    "variable": [{ "name": "Stape Store lookup", "type": "cvt_555_666" }],
+    "customTemplate": [
+      { "templateId": "222", "name": "Custom Loader", "galleryReference": { "host": "github.com", "owner": "stape-io", "repository": "custom-loader-client" } },
+      { "templateId": "444", "name": "Facebook Conversion API", "galleryReference": { "host": "github.com", "owner": "facebookincubator", "repository": "ConversionsAPI-Tag-for-GoogleTagManager" } }
+    ]
+  }
+}

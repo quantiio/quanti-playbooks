@@ -1,0 +1,8 @@
+{
+  "name": "quanti-sgtm-server-to-server",
+  "displayName": "Quanti — move your server-side GTM to Quanti",
+  "version": "0.1.0",
+  "description": "Claude guides you step by step to move an existing server-side Google Tag Manager setup (Stape, Addingwell, Google Cloud, self-hosted) to a Quanti server on your own domain, and checks each step itself: container audit, DNS, test before switching, next-day data check.",
+  "author": { "name": "Quanti", "url": "https://www.quanti.io" },
+  "license": "MIT"
+}

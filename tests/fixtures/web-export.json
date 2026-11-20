@@ -1,0 +1,37 @@
+{
+  "exportFormatVersion": 2,
+  "containerVersion": {
+    "containerVersionId": "42",
+    "name": "Before migration",
+    "container": { "publicId": "GTM-WEB1234", "name": "shop.example.com", "usageContext": ["WEB"] },
+    "tag": [
+      {
+        "name": "Google tag - G-ABC123",
+        "type": "googtag",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "tagId", "value": "G-ABC123" },
+          {
+            "type": "LIST",
+            "key": "configSettingsTable",
+            "list": [
+              {
+                "type": "MAP",
+                "map": [
+                  { "type": "TEMPLATE", "key": "parameter", "value": "server_container_url" },
+                  { "type": "TEMPLATE", "key": "parameterValue", "value": "{{Const - sGTM URL}}" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      { "name": "GA4 - purchase", "type": "gaawe", "parameter": [{ "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-ABC123" }] },
+      { "name": "Ads - purchase", "type": "awct", "parameter": [] },
+      { "name": "Meta pixel", "type": "html", "parameter": [{ "type": "TEMPLATE", "key": "html", "value": "<script>fbq('init','123');</script>" }] }
+    ],
+    "trigger": [{ "name": "All pages" }],
+    "variable": [
+      { "name": "Const - sGTM URL", "type": "c", "parameter": [{ "type": "TEMPLATE", "key": "value", "value": "https://gtm.example.com" }] }
+    ]
+  }
+}
