@@ -19,7 +19,7 @@ Guide constants, used in every progress call: `guide` = `quanti-customer-audienc
   plain sentence the first time it appears (data warehouse, procedure, mirror mode…).
 - **Show before you create.** The user validates explicitly after the audience
   definition (step 3), after the quality check (step 7) and before anything is sent
-  (step 13). Nothing is created in their project before step 9.
+  (step 13). Nothing is created in their project before step 8.
 - **Check, don't trust.** Each step ends with a check you run yourself with a Quanti tool.
 - **Personal data stays masked.** Never show a full email: `j***@example.com`. Never put
   an email, a customer name or a count of customers in a progress `note`.
@@ -33,15 +33,19 @@ When something goes wrong: [references/troubleshooting.md](references/troublesho
 
 ```
 Orders in the data warehouse
-  → procedure quanti_agg.llm_aud_<name>      (the audience's definition, created by you)
-  → table audiences.<name>                   (recomputed every night by a BigQuery
-                                              scheduled query, set up once per project)
-  → reverse connector Meta / Google Ads      (sends the table every day, after the
-                                              recomputation)
+  → the audience, kept up to date in the warehouse   (created by you, step 8)
+  → reverse connector Meta / Google Ads              (sends it every day)
   → audience on the platform
 ```
 
-An audience = one procedure + one table + one reverse connector per platform.
+Two ways to keep the audience up to date. **Always try the first one.**
+
+- **A view** (materialized view `quanti_agg.llm_aud_<name>`): BigQuery recomputes it by
+  itself, everything is done from the conversation. Some queries are refused by BigQuery
+  in a view.
+- **Otherwise, a procedure** `quanti_agg.llm_aud_<name>` that rewrites a table
+  `audiences.<name>`, run every night by a BigQuery scheduled query that the user sets up
+  once per project in the BigQuery console.
 
 ## Progress (memory between conversations)
 
@@ -64,8 +68,8 @@ remember each other: the Quanti connector does.
 - A Quanti project on **BigQuery**. `create_aggregation_view` does not exist on Snowflake:
   say so plainly and stop.
 - Their **orders in the data warehouse**, with the customer's email.
-- **Access to the BigQuery console** of the project, or someone who has it — only for the
-  one-time setup of step 8 and to delete an audience.
+- **Access to the BigQuery console** of the project, or someone who has it — only if the
+  view is refused (step 9) and to delete an audience.
 - Access to the **ad accounts** that will receive the audience.
 - One **Activate unit** of their Quanti plan per audience and per platform.
 
@@ -94,11 +98,11 @@ precise idea, propose:
 - **Best customers**: top lifetime revenue or repeat buyers, as a lookalike seed.
 
 Choose with them a **technical name** in snake_case that says the rule and the period:
-`buyers_90_days`, `winback_12_36_months`. It names the procedure and the table: it cannot
-be changed later without recreating everything.
+`buyers_90_days`, `winback_12_36_months`. It names the audience in the warehouse: it
+cannot be changed later without recreating everything.
 
-Then check it does not exist already: `list_aggregation_views` (procedures named
-`quanti_agg.llm_aud_*`). If a close one exists, show it and ask whether to reuse it.
+Then check it does not exist already: `list_aggregation_views` (views and procedures
+named `quanti_agg.llm_aud_*`). If a close one exists, show it and ask whether to reuse it.
 Also count them: **20 objects at most per project** in `quanti_agg`. At 20, stop: an
 unused one must be deleted first (see *Delete an audience*).
 
@@ -165,7 +169,8 @@ GROUP BY 1
 
 - **Never hash the email**: Quanti hashes it when sending. A hashed email would be hashed
   twice and match nobody.
-- Rolling windows with `CURRENT_DATE()` are right here: the table is recomputed every night.
+- Rolling windows with `CURRENT_DATE()` are what the user means by "the last 90 days":
+  keep them, even if BigQuery may then refuse the view at step 8 (the procedure takes over).
 - If emails live on the order and there is no customer table, group on the order's email.
 - `execute_query` refuses `CREATE` and `INFORMATION_SCHEMA`: test the `SELECT` only.
 
@@ -202,29 +207,57 @@ Then 5 sample rows, emails masked. Give a clear verdict:
 If a close audience exists, measure the overlap (common emails) and say it. Get an
 explicit yes before step 8.
 
-### 8. Nightly recomputation, once per project — `nightly-setup`
+### 8. Create the audience as a view — `create`
 
-Skip this step (`skipped`) if it is already in place: `list_scheduled_queries` shows an
-active scheduled query whose SQL calls the `llm_aud_` procedures.
+**Always try this first.** `create_aggregation_view` with `project_id` and:
 
-Otherwise, the user (or someone with access) does two things in the **BigQuery console**
-of the project, once:
+```sql
+CREATE MATERIALIZED VIEW quanti_agg.llm_aud_<name>
+OPTIONS (
+  enable_refresh = true,
+  refresh_interval_minutes = 720,
+  allow_non_incremental_definition = true,
+  max_staleness = INTERVAL "12" HOUR
+)
+AS <step 6 query>
+```
 
-1. **Create the dataset `audiences`**, in the **same location** (region) as the orders
+plus `description` (the audience rule in plain words), `purpose`,
+`business_domain = "CRM / Audiences"` and `columns` (the 7 standard columns, described —
+required for a view).
+
+- Keep the `OPTIONS` exactly: they make BigQuery accept most queries in a view, and
+  recompute it every 12 hours. A shorter interval rescans the orders more often and
+  costs more in BigQuery.
+- **Accepted** → keep the `push_source` returned: it is the source of step 12. Say the
+  audience is recomputed every 12 hours. Mark step 9 `skipped` and go to step 10.
+- **Refused by BigQuery** (a function or a clause not allowed in a materialized view,
+  e.g. `CURRENT_DATE()` for a rolling window, a window function for deduplication):
+  say it in one plain sentence, record `failed` with the reason in the note, and go to
+  step 9. Do not rewrite the audience to make the view pass if that changes its meaning.
+- Refused for another reason (name, 20 objects, Snowflake): see troubleshooting.
+
+### 9. Otherwise, a procedure run every night — `procedure`
+
+Only when the view was refused. Three parts:
+
+**a. Once per project, in the BigQuery console.** Skip if already in place:
+`list_scheduled_queries` shows an active scheduled query whose SQL calls the `llm_aud_`
+procedures. Otherwise the user (or someone with access):
+
+1. **Creates the dataset `audiences`**, in the **same location** (region) as the orders
    tables — `get_schema_context` gives it. A different location makes the table unreadable
-   by the procedure and invisible in Quanti's source picker.
-2. **Create a scheduled query** named `Quanti - refresh audiences`, every day, with the
+   by the procedure and invisible to Quanti.
+2. **Creates a scheduled query** named `Quanti - refresh audiences`, every day, with the
    content of [references/refresh-all-audiences.sql](references/refresh-all-audiences.sql)
    given exactly as written, no destination table. **Hour**: after the connectors that
    fill the orders tables have finished (step 2), for example one hour after the latest.
    The form shows the time zone of the schedule: check it.
 
-Check: `list_scheduled_queries` lists it as active. Explain once: every procedure named
-`llm_aud_*` is recomputed by this query, so new audiences need nothing more here.
+Check: `list_scheduled_queries` lists it as active. Every procedure named `llm_aud_*` is
+run by this query: the next audiences need nothing more here.
 
-### 9. Create the audience's procedure — `procedure`
-
-`create_aggregation_view` with `project_id` and:
+**b. The procedure.** `create_aggregation_view` with:
 
 ```sql
 CREATE PROCEDURE quanti_agg.llm_aud_<name>()
@@ -234,20 +267,18 @@ BEGIN
 END
 ```
 
-plus `description` (the audience rule in plain words), `purpose`,
-`business_domain = "CRM / Audiences"` and `columns` (the 7 standard columns, described).
+and the same `description`, `purpose`, `business_domain`, `columns` as step 8. Name
+`llm_aud_<name>`, dataset `quanti_agg`, a body of **one statement**. **Ignore the
+`push_source`** returned: it points to the procedure, which cannot be sent.
 
-- Name **`llm_aud_<name>`**, dataset **`quanti_agg`**, a body of **one statement**.
-- **Ignore the `push_source`** returned by the tool: it points to the procedure, which
-  cannot be sent. The source will be the table `audiences.<name>` (step 12).
-
-### 10. First computation — `first-run`
-
-Without action, the table exists tomorrow morning, after the scheduled query. To go
+**c. First computation.** Without action, the table exists tomorrow morning. To go
 faster, the user runs in the BigQuery console `CALL quanti_agg.llm_aud_<name>();`.
 Status `blocked` while waiting for the night.
 
-Check: `execute_query` on `SELECT COUNT(*) FROM audiences.<name>` matches step 7.
+### 10. Check the audience in the warehouse — `first-run`
+
+`execute_query`: `SELECT COUNT(*) FROM quanti_agg.llm_aud_<name>` (view) or
+`FROM audiences.<name>` (procedure). It must match step 7.
 
 ### 11. Reverse connector — `connector`
 
@@ -260,27 +291,29 @@ to the ad platform on that Quanti page. `get_connector_setup_status` → `select
 
 - **Choose every ad account that must receive the audience now**: an account added
   after the first sync only receives people who enter the audience later.
-- `create` with `account_name`, `lookback_days = 7`, and `sync_hour` **after the
-  scheduled query of step 8** (one hour later is fine): before it, the connector sends
-  yesterday's audience.
+- `create` with `account_name`, `lookback_days = 7`, and `sync_hour`: after the connectors
+  that fill the orders (view), or one hour after the scheduled query (procedure). Earlier,
+  the connector sends yesterday's audience.
 
 Say it once: each connector with an audience consumes one Activate unit. If the quota is
 refused, say « Vous n'avez pas assez de quota sur votre offre Quanti » (in the user's
 language), with the two ways out: add Activate units in the billing space, or delete a
 reverse connector no longer used. No workaround.
 
-### 12. Mapping in Quanti — `push`
+### 12. Source and mapping — `push`
 
-The table is declared as a source from Quanti's screen (the conversation cannot do it).
-Guide the user screen by screen:
+**The source.**
+- View: the `push_source` of step 8 (`connector_sku`, `connector_account_id`,
+  `request_id`), as is.
+- Procedure: Quanti must first know the table, and only its screen can declare it. Guide
+  the user: Quanti → project → the connector of step 11 → **Mapping** tab → **Source** →
+  dataset `audiences` → table `<name>` → save. Then find it with `list_connector_reports`
+  or `get_schema_context` (dataset `audiences`): its connector (`dwh-database`), account
+  and report id are the source.
 
-1. Quanti → project → the connector of step 11 → **Mapping** tab.
-2. **Source**: dataset `audiences` → table `<name>`. Quanti declares the table for them.
-3. **Destination name** (the audience's name on the platform): explicit and **never
-   used before** in the ad account, otherwise Quanti fills the existing audience and both
-   mix. It cannot be changed after the first sync (it can be renamed on the platform).
-4. **Fields**: `inspect_reverse_push action=describe` (`push_id` = `custom_audience` for
-   Meta, `customer_match` for Google) gives the expected fields. Map:
+**The mapping.** `inspect_reverse_push action=describe` (`push_id` = `custom_audience`
+for Meta, `customer_match` for Google, `account_id` of step 11) gives the expected fields.
+Propose:
 
 | Destination field | Meta | Google Ads |
 |---|---|---|
@@ -290,22 +323,25 @@ Guide the user screen by screen:
 | `consent_ad_personalization` | — | `consent` |
 | anything else | leave empty | leave empty |
 
-   First and last name are useless for Google without a postal code and country: leave
-   them empty. When `describe` lists other fields, leave them empty unless the table has
-   the exact data.
+First and last name are useless for Google without a postal code and country. Any other
+field `describe` lists stays empty unless the audience has the exact data: a wrong column
+goes to the platform unreviewed.
 
-5. Save.
+**The destination name** (`name`, the audience's name on the platform): explicit and
+**never used before** in the ad account, otherwise Quanti fills the existing audience and
+both mix. It cannot be changed after the first sync (it can be renamed on the platform).
+Ask the user for it.
 
-### 13. Check before the first send — `push-check`
+### 13. Preview, then save — `push-check`
 
-`inspect_reverse_push action=describe` (the configuration now in place), then
-`action=preview` with that same configuration. Show the warnings first (an **empty
-source** is the most serious), then the volume (it must match step 10) and a few masked
-rows.
+`inspect_reverse_push action=preview` with exactly the source, mapping and name of step
+12. Show the warnings first (an **empty source** is the most serious), then the volume
+(it must match step 10) and a few masked rows.
 
-Say it plainly: these pushes are in **mirror mode**: the platform audience becomes a copy
-of the table at every sync; people who leave the table leave the audience, and an empty
-table empties the audience. Get a yes.
+Say it plainly before asking: these pushes are in **mirror mode**: the platform audience
+becomes a copy of the source at every sync; people who leave it leave the audience, and
+an empty source empties the audience. Get an explicit yes, then `configure_push` with
+the same configuration and `confirm=true`. Check with `describe` that it is in place.
 
 ### 14. First sync — `first-sync`
 
@@ -313,7 +349,7 @@ Status `blocked` until the day after. The conversation cannot read the history o
 ask the user to open the reverse connector in Quanti and to tell you (or paste a
 screenshot of) the last run: its status and the number of rows sent. It must be
 successful **with rows sent**, close to step 10's count. A successful run with 0 rows
-means the connector ran before the table was recomputed: move its `sync_hour` later.
+means the connector ran before the audience was recomputed: move its `sync_hour` later.
 Run `inspect_reverse_push action=preview` again to confirm the source is not empty today.
 
 Tell the user the audience takes a few hours to fill on the platform, and that the size
@@ -322,17 +358,20 @@ shown there counts recognised people, below the number of emails sent. Close the
 
 ## Change an audience
 
-Change the rule: `create_aggregation_view` with `CREATE OR REPLACE PROCEDURE
-quanti_agg.llm_aud_<name>()` and the new query, after steps 6 and 7 again. The table is
-recomputed at the next night (or `CALL`), the connector needs nothing.
+Steps 6 and 7 again, then `create_aggregation_view` with `CREATE OR REPLACE MATERIALIZED
+VIEW` (same `OPTIONS`) or `CREATE OR REPLACE PROCEDURE`, same name. The connector needs
+nothing as long as the 7 columns keep their names. A view refused this time falls back
+to step 9 under a **new** name, and the push source must then be changed (steps 12-13).
 
 ## Delete an audience
 
-In this order, otherwise the table keeps being recomputed or the push fails every day:
+In this order, otherwise the audience keeps being recomputed (and billed by BigQuery) or
+the push fails every day:
 
 1. Delete the reverse connector(s) in Quanti. The audience stays on the platform, frozen;
    the user deletes it there if they want.
-2. In the BigQuery console: `DROP PROCEDURE quanti_agg.llm_aud_<name>;` then
-   `DROP TABLE audiences.<name>;`.
+2. In the BigQuery console: `DROP MATERIALIZED VIEW quanti_agg.llm_aud_<name>;` (view), or
+   `DROP PROCEDURE quanti_agg.llm_aud_<name>;` then `DROP TABLE audiences.<name>;`
+   (procedure).
 3. `unregister_aggregation_view`, to free its place in the 20. Say it: this call alone
    deletes nothing in BigQuery, which is why step 2 comes first.

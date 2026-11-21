@@ -3,7 +3,12 @@
 Say what you checked, then the likely cause, then one action. State a cause only when a
 tool or the user showed it.
 
-## `create_aggregation_view` refuses the procedure
+## `create_aggregation_view` refuses the view or the procedure
+
+- A BigQuery error about the view's query (a function, a clause, a join "not supported
+  in materialized views"): expected for some audiences. Go to step 9 (procedure); do
+  not change the audience's rule to make the view pass.
+- *columns is required when creating a materialized view*: pass the 7 columns.
 
 - *name must start with 'llm_'* / *must target the 'quanti_agg' dataset*: the procedure is
   `quanti_agg.llm_aud_<name>`, nothing else.
@@ -12,7 +17,13 @@ tool or the user showed it.
 - *not available on Snowflake*: audiences need a BigQuery project. Stop there.
 - A SQL error: run the step 6 `SELECT` alone with `execute_query` to find it, fix, retry.
 
-## The table `audiences.<name>` does not exist the next morning
+## The view is behind
+
+A view is recomputed every 12 hours by BigQuery, not at a fixed hour. If the orders of
+yesterday are missing, wait for the next recomputation; the send of the following day
+catches up.
+
+## Procedure: the table `audiences.<name>` does not exist the next morning
 
 1. `list_scheduled_queries`: is `Quanti - refresh audiences` active, and did it run? A
    failed run names, in its error, the audiences that were not recomputed.
@@ -24,7 +35,7 @@ tool or the user showed it.
    - *Access Denied*: the account running the scheduled query cannot read the orders or
      write in `audiences`. The project's BigQuery administrator fixes the access.
 
-## The table is not offered in Quanti's source picker (step 12)
+## Procedure: the table is not offered in Quanti's source picker (step 12)
 
 - It does not exist yet: a table appears only once computed (step 10).
 - It is in another location than the project's other datasets.
