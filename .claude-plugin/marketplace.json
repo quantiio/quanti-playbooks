@@ -10,6 +10,11 @@
       "name": "quanti-smoke-test",
       "source": "./plugins/quanti-smoke-test",
       "description": "Internal test plugin (staging). Not for clients."
+    },
+    {
+      "name": "quanti-customer-audiences",
+      "source": "./plugins/quanti-customer-audiences",
+      "description": "Build an audience from your customers' orders and send it every day to Meta and Google Ads, step by step, without writing SQL."
     }
   ]
 }

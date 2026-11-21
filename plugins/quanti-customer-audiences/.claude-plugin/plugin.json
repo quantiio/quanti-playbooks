@@ -1,0 +1,8 @@
+{
+  "name": "quanti-customer-audiences",
+  "displayName": "Quanti — customer audiences for Meta and Google Ads",
+  "version": "0.1.0",
+  "description": "Claude guides you step by step to build an audience from your customers' orders (recent buyers to exclude, customers to win back, best customers as a lookalike seed…), checks its quality, and sends it every day to Meta and Google Ads through Quanti. No SQL needed.",
+  "author": { "name": "Quanti", "url": "https://www.quanti.io" },
+  "license": "MIT"
+}
