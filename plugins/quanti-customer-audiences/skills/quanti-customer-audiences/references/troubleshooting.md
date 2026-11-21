@@ -3,12 +3,8 @@
 Say what you checked, then the likely cause, then one action. State a cause only when a
 tool or the user showed it.
 
-## `create_aggregation_view` refuses the view or the procedure
+## `create_aggregation_view` refuses the procedure
 
-- A BigQuery error about the view's query (a function, a clause, a join "not supported
-  in materialized views"): expected for some audiences. Go to step 9 (procedure); do
-  not change the audience's rule to make the view pass.
-- *columns is required when creating a materialized view*: pass the 7 columns.
 - *name must start with 'llm_'* / *must target the 'quanti_agg' dataset*: the procedure is
   `quanti_agg.llm_aud_<name>`, nothing else.
 - *run_daily: …*: the message says what to fix. The table the procedure writes must be
@@ -19,16 +15,15 @@ tool or the user showed it.
 - *not available on Snowflake*: audiences need a BigQuery project. Stop there.
 - A SQL error: run the step 6 `SELECT` alone with `execute_query` to find it, fix, retry.
 
-## The view is behind
+## The audience is behind
 
-A view is recomputed every 12 hours by BigQuery, not at a fixed hour. If the orders of
-yesterday are missing, wait for the next recomputation; the send of the following day
-catches up.
+The procedure runs once a day, 1 hour after the project's last connector. If the orders
+of yesterday are missing, check `newest` (step 7): the orders connector may be late.
 
-## Procedure: the table `llm_aud_<name>_list` does not exist
+## The table `llm_aud_<name>_list` does not exist
 
 1. `list_aggregation_views`: the procedure must show `run_daily: true`. If not, it was
-   created or recreated without it: recreate it with `run_daily: true` (step 9).
+   created or recreated without it: recreate it with `run_daily: true` (step 8).
 2. Ask the user to open the *Aggregation Views* connector in Quanti and to tell you (or
    paste a screenshot of) its last run. No run yet: **Sync now**. A failed run shows the
    error of each procedure that failed:
@@ -46,10 +41,9 @@ field mapped to the email column, and for Google the consent fields (people sent
 
 ## The audience emptied on the platform
 
-Mirror mode: the source was empty at the time of the send. `execute_query` a count on it
+Mirror mode: the table was empty at the time of the send. `execute_query` a count on it
 today, then check the hours: the reverse connector after the *Aggregation Views*
-connector (procedure), itself after the orders connectors. Fix the hours; the next send
-refills it.
+connector, itself after the orders connectors. Fix the hours; the next send refills it.
 
 ## A successful send with 0 rows
 

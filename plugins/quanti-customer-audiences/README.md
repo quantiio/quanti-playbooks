@@ -27,9 +27,9 @@ about an hour, plus a check the next day after the first send. You can stop at a
 
 - **Your customers' data stays in your data warehouse.** Claude reads counts and a few
   sample rows to check the audience, with emails partly masked in the conversation.
-- **The Quanti connector** creates, in your project, the view (or the procedure Quanti
-  runs every day) that keeps the audience up to date, and the connector that sends it,
-  with your own Quanti account. Emails are
+- **The Quanti connector** creates, in your project, the procedure Quanti runs every day
+  to keep the audience up to date, and the connector that sends it, with your own Quanti
+  account. Emails are
   hashed by Quanti before they are sent to Meta or Google.
 - **Your progress is saved in your Quanti account**: the steps you went through, their
   status, and short notes on why a step was blocked. No email, audience content or
