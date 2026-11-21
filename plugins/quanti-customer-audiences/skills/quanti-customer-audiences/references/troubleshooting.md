@@ -9,9 +9,11 @@ tool or the user showed it.
   in materialized views"): expected for some audiences. Go to step 9 (procedure); do
   not change the audience's rule to make the view pass.
 - *columns is required when creating a materialized view*: pass the 7 columns.
-
 - *name must start with 'llm_'* / *must target the 'quanti_agg' dataset*: the procedure is
   `quanti_agg.llm_aud_<name>`, nothing else.
+- *run_daily: …*: the message says what to fix. The table the procedure writes must be
+  `quanti_agg.llm_aud_<name>_list`, not named like the procedure, and `columns` must
+  describe it.
 - *maximum number of aggregation views reached (20)*: delete an unused audience first
   (SKILL.md, *Delete an audience*). Do not reuse another audience's name.
 - *not available on Snowflake*: audiences need a BigQuery project. Stop there.
@@ -23,23 +25,17 @@ A view is recomputed every 12 hours by BigQuery, not at a fixed hour. If the ord
 yesterday are missing, wait for the next recomputation; the send of the following day
 catches up.
 
-## Procedure: the table `audiences.<name>` does not exist the next morning
+## Procedure: the table `llm_aud_<name>_list` does not exist
 
-1. `list_scheduled_queries`: is `Quanti - refresh audiences` active, and did it run? A
-   failed run names, in its error, the audiences that were not recomputed.
-2. Ask the user to run `CALL quanti_agg.llm_aud_<name>();` in the BigQuery console and
-   to paste the error, if any:
-   - *Not found: Dataset … audiences*: the dataset was not created (step 8).
-   - *… was not found in location …*: the dataset `audiences` is not in the same location
-     as the orders tables. It must be recreated in the right location (empty it first).
-   - *Access Denied*: the account running the scheduled query cannot read the orders or
-     write in `audiences`. The project's BigQuery administrator fixes the access.
-
-## Procedure: the table is not offered in Quanti's source picker (step 12)
-
-- It does not exist yet: a table appears only once computed (step 10).
-- It is in another location than the project's other datasets.
-- The dataset is named like an internal or aggregation dataset (`*_agg`): use `audiences`.
+1. `list_aggregation_views`: the procedure must show `run_daily: true`. If not, it was
+   created or recreated without it: recreate it with `run_daily: true` (step 9).
+2. Ask the user to open the *Aggregation Views* connector in Quanti and to tell you (or
+   paste a screenshot of) its last run. No run yet: **Sync now**. A failed run shows the
+   error of each procedure that failed:
+   - *Not found: Table …* in the procedure: the query reads a table that does not exist;
+     run the step 6 `SELECT` with `execute_query` to find it.
+   - *Access Denied*: Quanti's access to the project's BigQuery is missing a right. The
+     user contacts Quanti support from the app.
 
 ## The audience is much smaller on the platform than in the table
 
@@ -50,14 +46,15 @@ field mapped to the email column, and for Google the consent fields (people sent
 
 ## The audience emptied on the platform
 
-Mirror mode: the table was empty at the time of the send. `execute_query` a count on the
-table today, then check that the connector's `sync_hour` is after the scheduled query and
-that the orders connectors finished before it. Fix the hours; the next send refills it.
+Mirror mode: the source was empty at the time of the send. `execute_query` a count on it
+today, then check the hours: the reverse connector after the *Aggregation Views*
+connector (procedure), itself after the orders connectors. Fix the hours; the next send
+refills it.
 
 ## A successful send with 0 rows
 
-The connector ran before the table was recomputed, or the table was empty. Same checks
-as above.
+The connector ran before the audience was recomputed, or the source was empty. Same
+checks as above.
 
 ## The quota is refused
 

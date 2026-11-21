@@ -10,9 +10,8 @@ You do not need to know SQL.
 
 - A Quanti project whose data warehouse is **BigQuery**, with your orders in it (from a
   Quanti connector or from your own tables), including the customer's email.
-- Access to the **BigQuery console** of that project. It is not always needed: only for
-  some audiences, to set up their nightly recomputation once (Claude gives you what to
-  paste), and to delete an audience.
+- Access to the **BigQuery console** of that project, only to delete an audience
+  completely (Claude gives you what to paste).
 - Access to the Meta and/or Google Ads ad accounts that will receive the audience.
 - One Activate unit of your Quanti plan per audience and per platform.
 
@@ -28,8 +27,9 @@ about an hour, plus a check the next day after the first send. You can stop at a
 
 - **Your customers' data stays in your data warehouse.** Claude reads counts and a few
   sample rows to check the audience, with emails partly masked in the conversation.
-- **The Quanti connector** creates, in your project, the view (or procedure) that keeps
-  the audience up to date and the connector that sends it, with your own Quanti account. Emails are
+- **The Quanti connector** creates, in your project, the view (or the procedure Quanti
+  runs every day) that keeps the audience up to date, and the connector that sends it,
+  with your own Quanti account. Emails are
   hashed by Quanti before they are sent to Meta or Google.
 - **Your progress is saved in your Quanti account**: the steps you went through, their
   status, and short notes on why a step was blocked. No email, audience content or
