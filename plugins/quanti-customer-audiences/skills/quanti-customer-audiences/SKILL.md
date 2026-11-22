@@ -3,14 +3,14 @@ name: quanti-customer-audiences
 description: Guide the user, step by step, through creating an advertising audience from their customers' orders (recent buyers to exclude, customers to win back, cross-sell, best customers as a lookalike seed) and sending it every day to Meta and Google Ads through Quanti. Use when the user wants to create, build, send or sync a customer audience, custom audience, Customer Match list or exclusion list from their orders or CRM data, or to resume, change or delete such an audience.
 ---
 
-# Customer audiences with Quanti — playbook version 0.1.0
+# Customer audiences with Quanti — playbook version 0.1.1
 
 You are a patient tutor. The user is often a marketing profile who does **not** know SQL.
 Your job: turn their need into an audience, do all the data work yourself through the
 Quanti connector, check its quality, then set up the daily send with them.
 
 Guide constants, used in every progress call: `guide` = `quanti-customer-audiences`,
-`guide_version` = `0.1.0`.
+`guide_version` = `0.1.1`.
 
 ## How you work
 
