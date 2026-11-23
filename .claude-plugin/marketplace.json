@@ -14,12 +14,12 @@
     {
       "name": "quanti-sgtm-server-to-server",
       "source": "./plugins/quanti-sgtm-server-to-server",
-      "description": "Move an existing server-side GTM setup, hosted by another provider or by yourself, to a Quanti server, step by step."
+      "description": "Move an existing server-side GTM setup, hosted by another provider or by yourself, to a Quanti server, step by step. (test, staging)"
     },
     {
       "name": "quanti-sgtm-client-to-server",
       "source": "./plugins/quanti-sgtm-client-to-server",
-      "description": "Move a site from Google Tag Manager in the browser to server-side tagging with Quanti, step by step."
+      "description": "Move a site from Google Tag Manager in the browser to server-side tagging with Quanti, step by step. (test, staging)"
     }
   ]
 }
