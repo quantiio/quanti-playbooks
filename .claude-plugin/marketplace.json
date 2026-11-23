@@ -15,6 +15,16 @@
       "name": "quanti-customer-audiences",
       "source": "./plugins/quanti-customer-audiences",
       "description": "Build an audience from your customers' orders and send it every day to Meta and Google Ads, step by step, without writing SQL."
+    },
+    {
+      "name": "quanti-sgtm-server-to-server",
+      "source": "./plugins/quanti-sgtm-server-to-server",
+      "description": "Move an existing server-side GTM setup, hosted by another provider or by yourself, to a Quanti server, step by step. (test, staging)"
+    },
+    {
+      "name": "quanti-sgtm-client-to-server",
+      "source": "./plugins/quanti-sgtm-client-to-server",
+      "description": "Move a site from Google Tag Manager in the browser to server-side tagging with Quanti, step by step. (test, staging)"
     }
   ]
 }
