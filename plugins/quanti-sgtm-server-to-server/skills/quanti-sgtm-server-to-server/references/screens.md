@@ -13,6 +13,9 @@ list of the account shows a *Type* column: *Web* or *Server*. Both IDs look like
 | What | Path | Media |
 |---|---|---|
 | Export a container (JSON) | Open the container → **Admin** → **Export container** → choose the published version → **Export** | — |
+| Create a SERVER container | Account → **Create container** → name → target platform **Server** | — |
+| Import a container | NEW container → **Admin** → **Import container** → file → **New** workspace → **Overwrite** → check the container ID at the top before **Confirm** | — |
+| Import a tag template (SERVER) | SERVER container → **Templates** → *Tag Templates* → **New** → **⋮** (top right) → **Import** | — |
 | Container config (SERVER) | SERVER container → **Admin** → **Container settings** → **Manually provision tagging server** → copy **Container config** | [video](https://quanti-docs-assets.s3.fr-par.scw.cloud/sgtm/gtm-container-config-20260917.mp4) |
 | Server container URLs (SERVER) | SERVER container → **Admin** → **Container settings** → *Server container URLs* → **Add URL** | — |
 | `server_container_url` (WEB) | WEB container → **Tags** → the Google tag (ID `G-…`) → **Configuration settings** → parameter `server_container_url` | — |
@@ -30,6 +33,15 @@ into a text file to attach. On Safari, enable the Develop menu first.
 Right click on the page → **Inspect** → **Network** tab → reload the page → type the
 Quanti domain in the filter box. Requests should be there with status 200. A screenshot of
 that list is enough.
+
+## Test the snippet in one browser only (step 9)
+
+Chrome → right click → **Inspect** → **Network** → reload → right click on the `gtm.js`
+request → **Block request URL** → reload (the page has no GTM now) → **Console** tab →
+paste the first block of the snippet without the `<script>` tags → Enter. Back in
+**Network**, filter on `gtm` then `gtag`: served by the new subdomain, status 200. Then
+⋮ → **More tools** → **Network request blocking** → remove the rule. Only this browser is
+affected.
 
 ## Quanti
 
