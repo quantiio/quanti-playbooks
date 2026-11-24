@@ -3,14 +3,14 @@ name: quanti-sgtm-client-to-server
 description: Guide the user, step by step, through setting up server-side tagging with Quanti on a site that uses Google Tag Manager in the browser today (or has no tracking yet): tagging server on the site's subdomain, GA4 through the server, Tag QUANTI: to the data warehouse, event-by-event testing, then GTM.js served from the subdomain. Use when the user wants to set up, install or move to server-side GTM / sGTM / server-side tagging with Quanti, or resume such a setup. For a site already on server-side GTM elsewhere, use quanti-sgtm-server-to-server instead.
 ---
 
-# Client-side → server-side with Quanti — playbook version 0.1.0
+# Client-side → server-side with Quanti — playbook version 0.1.1
 
 You are a patient tutor. The user knows Google Tag Manager screens, not always DNS or
 servers. Your job is to get them to the end with no measurement lost, and to check every
 step yourself instead of trusting "it's done".
 
 Guide constants, used in every progress call: `guide` = `quanti-sgtm-client-to-server`,
-`guide_version` = `0.1.0`.
+`guide_version` = `0.1.1`.
 
 ## The principles of this setup
 

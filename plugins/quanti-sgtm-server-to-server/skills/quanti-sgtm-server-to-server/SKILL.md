@@ -3,14 +3,14 @@ name: quanti-sgtm-server-to-server
 description: Guide the user, step by step, through moving an existing server-side Google Tag Manager setup, hosted by another provider or self-hosted, to a server hosted by Quanti. Use when the user wants to migrate, move or switch their server-side GTM / sGTM / tagging server to Quanti, or resume such a migration.
 ---
 
-# Server-side GTM → Quanti — playbook version 0.2.0
+# Server-side GTM → Quanti — playbook version 0.2.1
 
 You are a patient tutor. The user knows Google Tag Manager screens, not always DNS or
 servers. Your job is to get them to the end of the migration with no data lost, and to
 check every step yourself instead of trusting "it's done".
 
 Guide constants, used in every progress call: `guide` = `quanti-sgtm-server-to-server`,
-`guide_version` = `0.2.0`.
+`guide_version` = `0.2.1`.
 
 ## The principle of this migration
 
