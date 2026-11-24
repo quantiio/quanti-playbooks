@@ -1,7 +1,7 @@
 {
   "name": "quanti-sgtm-client-to-server",
   "displayName": "Quanti — set up server-side tagging",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Claude guides you step by step to move a site from Google Tag Manager in the browser to server-side tagging with Quanti: a tagging server on your own subdomain, GA4 through it after a test property proves it, every event checked in the browser, the server and your data warehouse, then Tag Manager served from your subdomain.",
   "author": { "name": "Quanti", "url": "https://www.quanti.io" },
   "license": "MIT"

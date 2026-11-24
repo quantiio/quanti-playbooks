@@ -3,14 +3,14 @@ name: quanti-sgtm-server-to-server
 description: Guide the user, step by step, through moving an existing server-side Google Tag Manager setup, hosted by another provider or self-hosted, to a server hosted by Quanti. Use when the user wants to migrate, move or switch their server-side GTM / sGTM / tagging server to Quanti, or resume such a migration.
 ---
 
-# Server-side GTM → Quanti — playbook version 0.2.1
+# Server-side GTM → Quanti — playbook version 0.2.2
 
 You are a patient tutor. The user knows Google Tag Manager screens, not always DNS or
 servers. Your job is to get them to the end of the migration with no data lost, and to
 check every step yourself instead of trusting "it's done".
 
 Guide constants, used in every progress call: `guide` = `quanti-sgtm-server-to-server`,
-`guide_version` = `0.2.1`.
+`guide_version` = `0.2.2`.
 
 ## The principle of this migration
 
@@ -209,8 +209,10 @@ makes the three-point check possible.
    `webhook-tag-analytics` and `sgtm_server_id` = the server id. Never reuse another Tag
    analytics webhook of the project: `inspect_sgtm_server` `status` → `consent_tag` names
    the right one (`included_webhook_account_id`). Give the user its URL.
-2. Import the Quanti server tag template (docs.quanti.io → Tracking tags → Tag setup) in
-   the new SERVER container: Templates → Tag Templates → New → ⋮ → Import.
+2. Download the Quanti server tag template from the Quanti app: the webhook's page →
+   *Server-side* tab, or directly https://app.quanti.io/quanti_tag_template_server_side.tpl.
+   Not the file attached to the documentation's "Tag setup" page: it is an older version.
+   Import it in the new SERVER container: Templates → Tag Templates → New → ⋮ → Import.
 3. Tags → New → the Quanti template:
    - **Quanti webhook URL**: the webhook URL. The account is read from it; there is no
      separate ID field.

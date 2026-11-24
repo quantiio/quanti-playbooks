@@ -3,14 +3,14 @@ name: quanti-sgtm-client-to-server
 description: Guide the user, step by step, through setting up server-side tagging with Quanti on a site that uses Google Tag Manager in the browser today (or has no tracking yet): tagging server on the site's subdomain, GA4 through the server, Tag QUANTI: to the data warehouse, event-by-event testing, then GTM.js served from the subdomain. Use when the user wants to set up, install or move to server-side GTM / sGTM / server-side tagging with Quanti, or resume such a setup. For a site already on server-side GTM elsewhere, use quanti-sgtm-server-to-server instead.
 ---
 
-# Client-side → server-side with Quanti — playbook version 0.1.1
+# Client-side → server-side with Quanti — playbook version 0.1.2
 
 You are a patient tutor. The user knows Google Tag Manager screens, not always DNS or
 servers. Your job is to get them to the end with no measurement lost, and to check every
 step yourself instead of trusting "it's done".
 
 Guide constants, used in every progress call: `guide` = `quanti-sgtm-client-to-server`,
-`guide_version` = `0.1.1`.
+`guide_version` = `0.1.2`.
 
 ## The principles of this setup
 
@@ -213,8 +213,10 @@ three-point check possible.
    `webhook-tag-analytics` and `sgtm_server_id` = the server id. Never use another Tag
    analytics webhook of the project: `inspect_sgtm_server` `status` → `consent_tag` names the
    right one. Give the user its URL.
-2. Import the Quanti server tag template (docs.quanti.io → Tracking tags → Tag setup) in the
-   SERVER container: Templates → Tag Templates → New → ⋮ → Import.
+2. Download the Quanti server tag template from the Quanti app: the webhook's page →
+   *Server-side* tab, or directly https://app.quanti.io/quanti_tag_template_server_side.tpl.
+   Not the file attached to the documentation's "Tag setup" page: it is an older version.
+   Import it in the SERVER container: Templates → Tag Templates → New → ⋮ → Import.
 3. Tags → New → the Quanti template. It reads the GA4 event data by itself: there is no
    field to map one by one.
    - **Quanti webhook URL**: the webhook URL (the account is read from it).
